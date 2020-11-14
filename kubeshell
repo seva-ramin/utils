@@ -1,0 +1,305 @@
+#!/bin/bash
+
+# set prompt color to blue
+CB=$'\e[35m'
+CE=$'\e[0m'
+es=$'\e'            # read escape characters, $'\033' works too
+back=$'\033[1D'     # move curser back
+eof=$'\004'         # read end of file, Ctrl-D
+tab=$'\t' 
+eol=$'\n'           # end of line
+bs=$'\177'          # backspace key, 177 is DEL, may need to also cover 010 for BS on some keyboards
+debugline=0
+
+namespace=default
+context="all"
+
+# list of possible values for tab completion
+tabbed=(pods services deployments replicasets statefulsets pv)
+
+prompt() {
+    prm="${CB}$*${CE}$ "
+}
+
+prompt $namespace
+
+switch_ns() {
+    n=$2
+    if [ X$n = X ]
+    then
+        objects=`kubectl get ns | awk '{print $1}' | grep -v NAME`
+        echo "$objects"
+        tabbed=()
+        for t in $objects; do tabbed+=($t); done
+        return
+    fi
+    kubectl get ns | awk '{print $1}' | grep -q $n
+    if [ $? -eq 1 ]
+    then
+        echo No such namespace: $n
+        return
+    fi
+    namespace=$n
+    _cd    
+}
+
+_cd() {
+    d=$2
+    if [ X$d = X ]
+    then
+        context="all"
+        prompt $namespace
+        _list
+        return
+    fi
+    # check to see if we can see this resource
+    _list | grep -q $d
+    if [ $? -eq 1 ]
+    then
+        echo No such resource: $d
+        return
+    fi
+    context=$d
+    prompt "$namespace/$context"
+    _list
+}
+
+_list() {
+    arg=$2
+    case $context in
+    all)
+        tabbed=(pods services deployments replicasets statefulsets pv)
+        for t in ${tabbed[@]}; do echo $t; done
+        ;;
+    pods|services|pv|deployments)
+        if [ X$arg = X-a ]; then
+            kubectl get $context -n $namespace
+        elif [ X$arg = X ]; then
+            objects=`kubectl get $context -n $namespace | awk '{print $1}' | grep -v NAME`
+            echo "$objects"
+            tabbed=()
+            for t in $objects; do tabbed+=($t); done
+        else
+            # running ls on one object
+            kubectl get $context $arg -n $namespace
+        fi
+        ;;
+    *)
+        echo "Panic! No view context"
+        exit
+        ;;
+    esac
+}
+
+_less() {
+    r=$2
+    case $context in
+    pods|services|deployments|pv)
+        kubectl get $context $r -n $namespace -o yaml | less ;;
+    *)
+        echo "Panic! No view context"
+        exit ;;
+    esac
+}
+
+_cat() {
+    r=$2
+    case $context in
+    pods|services|deployments|pv)
+        kubectl get $context $r -n $namespace -o yaml ;;
+    *)
+        echo "Panic! No view context"
+        exit ;;
+    esac
+}
+
+_context() {
+    c=$2
+    if [ X$c = X ]
+    then
+        kubectl config get-contexts
+        return
+    fi
+    kubectl config current-context
+}
+
+
+_help() {
+    echo "Available commands:"
+    echo 
+    echo "ns [<namespace>]   show namespaces or switch to a <namespace>"
+    echo "ls [-a]            list all resources in current view, '-a' expands further"
+    echo "cd                 start from root or change to a resource view"
+    echo "less <resource>    show the description of the <resource>"
+    echo "more <resource>    same as less"
+    echo "clear              clear screen"
+    echo "context [current]  list all contexts or show current"
+    echo "kubectl [*]        run raw kubectl command"
+    echo "exit               exit"
+    echo "help               display this help message"
+}
+
+_debug() {
+    msg=$*
+    cols=`tput cols`
+    cols=$((cols - ${#msg}))
+    # save curser
+    tput sc
+    tput cup $debugline $cols
+    echo -n $'\e[31m'
+    echo -n $msg
+    debugline=$((debugline+1))
+    if [[ $debugline -gt 10 ]]; then
+        debugline=0
+    fi
+    # restore
+    echo -n $'\e[0m'
+    tput rc
+}
+
+
+while true
+do
+    IFS=
+
+    line=
+    echo -n "$prm"
+
+    while true
+    do
+        read -rsn1 c
+        # if escape character is present
+        if [[ $c == $es ]]; then
+            read -rsn2 c
+            # TODO - implement history
+            case $c in
+                '[A') ;; # up arrow
+                '[B') ;; # down arror
+            esac
+        else
+            case $c in
+                $eof) 
+                    if [ X${#line} = X0 ]; then
+                        echo exiting
+                        line=exit
+                        break
+                    fi
+                    ;;
+                $tab) 
+                    _tabbed=(${tabbed[@]}) # don't touch the tabbed list in the current context
+                    len=`echo $line|awk '{print NF}'`
+                    if [ $len -lt 2 ]; then
+                        echo
+                        for t in ${t_abbed[@]}; do echo $t; done
+                        echo -n "${prm}${line}"
+                    else
+                        # get the last argument
+                        substr=`echo $line|awk '{print $NF}'`
+                        # find the ones that match current string
+                        newtab=()
+                        for t in ${_tabbed[@]}; 
+                        do 
+                            if [[ $t == "$substr"* ]]; then
+                                newtab+=($t)
+                            fi
+                        done
+                        # override the previous values
+                        _tabbed=(${newtab[@]})
+
+                        # see if we can tab complete further
+                        while true
+                        do
+                            l=${#substr} # length of the last word
+                            l=$((l+1))
+                            substr=`echo $_tabbed[0]| cut -c 1-$l`
+                            newtab=()
+                            for t in ${_tabbed[@]}; 
+                            do 
+                                if [[ $t == "$substr"* ]]; then
+                                    newtab+=($t)
+                                fi
+                            done
+                            # the length of both must be the same and non-zero
+                            if [ ${#newtab[@]} == 0 ] || [ ${#newtab[@]} != ${#_tabbed[@]} ]; then
+                                break
+                            fi
+                            line=`echo $line | awk '{$(NF--)="";print}'`
+                            line="$line$substr"
+                            _tabbed=(${newtab[@]})
+                        done
+
+                        # prints all the values that match
+                        echo
+                        for t in ${_tabbed[@]}; 
+                        do
+                            echo $t
+                        done
+                        echo -n "${prm}${line}"
+                    fi
+                    ;;
+                $eol) echo -n "end of line" ;;
+                $'\025') # Ctrl-U - erase to the beg of prompt
+                    tput cub ${#line}
+                    tput el
+                    line=
+                    ;;
+                $bs) 
+                    if [ X${#line} != X0 ]; then
+                        echo -n $back
+                        tput el
+                        line=`echo $line | rev | cut -c2- | rev`
+                    fi
+                    ;;
+                "") echo 
+                    break 
+                    ;; # <return> key
+                *)  echo -n $c
+                    line=$line$c
+                    ;;
+            esac
+        fi
+    done
+
+    unset IFS
+
+    case $line in
+    ns | ns\ *)
+        switch_ns $line
+        ;;
+    ls | ls\ *)
+        _list $line
+        ;;
+    less\ * | more\ *)
+        _less $line
+        ;;
+    cat\ *)
+        _cat $line
+        ;;
+    cd | cd\ *)
+        _cd $line
+        ;;
+    context*)
+        _context $line
+        ;;
+    clear)
+        debugline=0
+        clear
+        ;;
+    kubectl*)
+        ($line)
+        ;;
+    '')
+        ;;
+    exit)
+        exit
+        ;;
+    help)
+        _help
+        ;;
+    *)
+        echo "Not legit: $line"
+        _help
+        ;;
+    esac
+
+done
