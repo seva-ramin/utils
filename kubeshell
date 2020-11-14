@@ -192,7 +192,7 @@ do
                     len=`echo $line|awk '{print NF}'`
                     if [ $len -lt 2 ]; then
                         echo
-                        for t in ${t_abbed[@]}; do echo $t; done
+                        for t in ${_tabbed[@]}; do echo $t; done
                         echo -n "${prm}${line}"
                     else
                         # get the last argument
