@@ -71,7 +71,7 @@ _list() {
         tabbed=(pods services deployments replicasets statefulsets pv)
         for t in ${tabbed[@]}; do echo $t; done
         ;;
-    pods|services|pv|deployments)
+    pods|services|deployments|replicasets|statefulsets|pv)
         if [ X$arg = X-a ]; then
             kubectl get $context -n $namespace
         elif [ X$arg = X ]; then
@@ -94,7 +94,7 @@ _list() {
 _less() {
     r=$2
     case $context in
-    pods|services|deployments|pv)
+    pods|services|deployments|replicasets|statefulsets|pv)
         kubectl get $context $r -n $namespace -o yaml | less ;;
     *)
         echo "Panic! No view context"
@@ -105,7 +105,7 @@ _less() {
 _cat() {
     r=$2
     case $context in
-    pods|services|deployments|pv)
+    pods|services|deployments|replicasets|statefulsets|pv)
         kubectl get $context $r -n $namespace -o yaml ;;
     *)
         echo "Panic! No view context"
@@ -129,8 +129,10 @@ _help() {
     echo 
     echo "ns [<namespace>]   show namespaces or switch to a <namespace>"
     echo "ls [-a]            list all resources in current view, '-a' expands further"
+    echo "ls object          show brief info about a resource"
     echo "cd                 start from root or change to a resource view"
-    echo "less <resource>    show the description of the <resource>"
+    echo "cat <resource>     show the description of the <resource>"
+    echo "less <resource>    page the description of the <resource>"
     echo "more <resource>    same as less"
     echo "clear              clear screen"
     echo "context [current]  list all contexts or show current"
@@ -286,7 +288,7 @@ do
         clear
         ;;
     kubectl*)
-        ($line)
+        ($line -n $namespace)
         ;;
     '')
         ;;
