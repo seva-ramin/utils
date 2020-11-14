@@ -15,7 +15,7 @@ namespace=default
 context="all"
 
 # list of possible values for tab completion
-tabbed=(pods services deployments replicasets statefulsets pv)
+tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv)
 
 prompt() {
     prm="${CB}$*${CE}$ "
@@ -68,10 +68,10 @@ _list() {
     arg=$2
     case $context in
     all)
-        tabbed=(pods services deployments replicasets statefulsets pv)
+        tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv)
         for t in ${tabbed[@]}; do echo $t; done
         ;;
-    pods|services|deployments|replicasets|statefulsets|pv)
+    pods|services|deployments|replicasets|statefulsets|configmaps|secrets|sa|roles|rolebindings|pv)
         if [ X$arg = X-a ]; then
             kubectl get $context -n $namespace
         elif [ X$arg = X ]; then
@@ -94,7 +94,7 @@ _list() {
 _less() {
     r=$2
     case $context in
-    pods|services|deployments|replicasets|statefulsets|pv)
+    pods|services|deployments|replicasets|statefulsets|configmaps|secrets|sa|roles|rolebindings|pv)
         kubectl get $context $r -n $namespace -o yaml | less ;;
     *)
         echo "Panic! No view context"
@@ -105,7 +105,7 @@ _less() {
 _cat() {
     r=$2
     case $context in
-    pods|services|deployments|replicasets|statefulsets|pv)
+    pods|services|deployments|replicasets|statefulsets|configmaps|secrets|sa|roles|rolebindings|pv)
         kubectl get $context $r -n $namespace -o yaml ;;
     *)
         echo "Panic! No view context"
