@@ -15,10 +15,13 @@ namespace=default
 context="all"
 
 # list of possible values for tab completion
-tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv nodes)
+tabbed=()
 history=()
 histindex=-1
 
+root_tab() {
+    tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv nodes)
+}
 prompt() {
     prm="${CB}$*${CE}$ "
 }
@@ -47,7 +50,7 @@ switch_ns() {
 
 _cd() {
     d=$2
-    if [ X$d = X ]
+    if [ X$d = X ] || [ X$d = X.. ] || [ X$d = X/ ]
     then
         context="all"
         prompt $namespace
@@ -70,8 +73,16 @@ _list() {
     arg=$2
     case $context in
     all)
-        tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv nodes)
-        for t in ${tabbed[@]}; do echo $t; done
+        if [ X$arg = X ]
+        then
+            root_tab
+            for t in ${tabbed[@]}; do echo $t; done
+        else
+            context=$arg
+            _list
+            context=all
+            root_tab
+        fi
         ;;
     pods|services|deployments|replicasets|statefulsets|configmaps|secrets|sa|roles|rolebindings|pv|nodes)
         if [ X$arg = X-a ]; then
@@ -162,6 +173,7 @@ _debug() {
     tput rc
 }
 
+root_tab
 
 while true
 do
