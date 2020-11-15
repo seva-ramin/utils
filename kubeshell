@@ -16,6 +16,8 @@ context="all"
 
 # list of possible values for tab completion
 tabbed=(pods services deployments replicasets statefulsets configmaps secrets sa roles rolebindings pv nodes)
+history=()
+histindex=-1
 
 prompt() {
     prm="${CB}$*${CE}$ "
@@ -135,8 +137,9 @@ _help() {
     echo "less <resource>    page the description of the <resource>"
     echo "more <resource>    same as less"
     echo "clear              clear screen"
+    echo "history            show command history, use up or down arrow to scroll"
     echo "context [current]  list all contexts or show current"
-    echo "kubectl [*]        run raw kubectl command"
+    echo "kubectl [*]        run raw kubectl command in current namespace"
     echo "exit               exit"
     echo "help               display this help message"
 }
@@ -175,8 +178,28 @@ do
             read -rsn2 c
             # TODO - implement history
             case $c in
-                '[A') ;; # up arrow
-                '[B') ;; # down arror
+                '[A') # up arrow
+                    if [[ $histindex -gt -1 ]]; then
+                        if [[ ${#line} -gt 0 ]]; then
+                            tput cub ${#line}
+                            tput el
+                        fi
+                        line=${history[$histindex]}
+                        echo -n "$line"
+                        histindex=$((histindex - 1))
+                    fi
+                    ;; 
+                '[B') # down arror
+                    if [ $histindex -gt -1 ] && [ $histindex -lt ${#history[@]} ]; then
+                        if [[ ${#line} -gt 0 ]]; then
+                            tput cub ${#line}
+                            tput el
+                        fi
+                        line=${history[$histindex]}
+                        echo -n "$line"
+                        histindex=$((histindex + 1))
+                    fi
+                    ;; 
             esac
         else
             case $c in
@@ -264,6 +287,12 @@ do
 
     unset IFS
 
+    # update history
+    if [[ ${#line} -gt 0 ]]; then
+        history+=("$line")
+        histindex=$((${#history[@]} - 1)) # set index to the last element
+    fi
+
     case $line in
     ns | ns\ *)
         switch_ns $line
@@ -286,6 +315,12 @@ do
     clear)
         debugline=0
         clear
+        ;;
+    history)
+        for ((i=0;i<${#history[@]};i++))
+        do
+            echo  ${history[$i]}
+        done
         ;;
     kubectl*)
         ($line -n $namespace)
