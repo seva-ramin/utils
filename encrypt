@@ -1,0 +1,15 @@
+#!/bin/sh
+
+filename=$1
+
+if [ X$filename = X ]
+then
+  echo "usage: $0 filename"
+  exit 1
+fi
+
+target=`basename $filename`
+
+[ ! -e ~/.encrypted ] && mkdir ~/.encrypted
+
+openssl enc -aes-256-cbc -e -in $filename -out ~/.encrypted/$target

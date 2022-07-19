@@ -1,0 +1,20 @@
+#!/bin/sh
+
+if [ X$1 = X ]
+then
+  echo usage: $0 keyword
+  exit 1
+fi
+
+key=$1
+
+count=`docker ps |grep $key | wc -l | sed 's/ //g'`
+if [[ $count -gt 1 ]]
+then
+  echo "found too many!"
+  exit 1
+fi
+
+cid=`docker ps |grep $key | awk '{print $1}'`
+
+docker exec -it $cid sh

@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# make sure we have jq installed.
+echo '{}' | jq . > /dev/null 2>&1 
+if [ $? -ne 0 ]
+then
+  echo "jq not installed or not working! Please install from https://stedolan.github.io/jq/"
+  exit 1
+fi
+
+echo "VPC - aws ec2 describe-vpcs"
+aws ec2 describe-vpcs | jq '.Vpcs[]| {id: .VpcId, name: (.Tags[] | select(.Key=="Name")).Value, cidr: .CidrBlock}'
+echo "--------------------------"
+
+echo "EC2 - aws ec2 describe-instances"
+aws ec2 describe-instances | jq '.Reservations[] | select(length > 0) | .Instances[] | {Id: .InstanceId, name: (.Tags[] | select(.Key=="Name")).Value, IP: .PrivateIpAddress, VPC: .VpcId, Subnest: .SubnetId, Security_Groups: (.SecurityGroups | map(.GroupId) | join(", ")), State: .State.Name}'
+echo "--------------------------"
+
+echo "Key Pairs - aws ec2 describe-key-pairs"
+aws ec2 describe-key-pairs | jq '.KeyPairs[]'
+echo "--------------------------"
+
+echo "Elastic IPs - aws ec2 describe-addresses"
+aws ec2 describe-addresses | jq '.Addresses[]'
+echo "--------------------------"
+
+echo "S3 - aws s3api list-buckets"
+aws s3api list-buckets | jq '.Buckets[]'
+echo "--------------------------"
+
+echo "IAM - aws iam list-users"
+aws iam list-users | jq '.Users[]| {username:.UserName, arn: .Arn}' 
+echo "--------------------------"
+
+echo "RDS - aws rds describe-db-instances"
+aws rds describe-db-instances | jq '.DBInstances[] | {user: .MasterUsername, class: .DBInstanceClass, status: .DBInstanceStatus}'
+echo "--------------------------"
+
+echo "RDS snapshots - aws rds describe-db-snapshots"
+aws rds describe-db-snapshots | jq '.DBSnapshots[] | {user: .MasterUsername, engine: .Engine, id: .DBSnapshotIdentifier}'
+echo "--------------------------"
+
+
+echo "Subnets - aws ec2 describe-subnets"
+aws ec2 describe-subnets | jq '.Subnets[] | {id: .SubnetId, public: .MapPublicIpOnLaunch, cidr: .CidrBlock, vpc: .VpcId, name: (.Tags[] | select(.Key=="Name")).Value}'
+echo "--------------------------"
+
+echo "Security Groups - aws ec2 describe-security-groups"
+aws ec2 describe-security-groups | \
+  jq '.SecurityGroups[]| {id: .GroupId, vpc: .VpcId, owner: .OwnerId, description: .Description, GroupName: .GroupName, Permissions: .IpPermissions[]}'
+echo "--------------------------"
+

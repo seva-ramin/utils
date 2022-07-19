@@ -1,0 +1,33 @@
+#!/bin/bash
+
+pod=$1
+ns=$2
+shell=$3
+
+if [ X$pod = X ]
+then
+  echo "usage: $0 pod-name [namespace] [shell]"
+  exit 1
+fi
+
+namespace=default
+if [ X$ns != X ]
+then
+  namespace="$ns"
+fi
+
+if [ X$shell = X ]
+then
+  shell='/bin/bash'
+fi
+
+kubectl get pod $pod -n $namespace >/dev/null 2>&1 
+if [ $? -eq 1 ]
+then
+  podarg=`kubectl get pod -n $namespace | grep $pod | awk '{print $1}' | head -1`
+else
+  podarg=$pod
+fi
+
+
+kubectl exec --stdin --tty $podarg -n $namespace -- $shell

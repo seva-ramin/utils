@@ -118,6 +118,10 @@ _less() {
 _cat() {
     r=$2
     case $context in
+    all)
+        ctx=`echo $r | awk -F/ '{print $1}'`
+        res=`echo $r | awk -F/ '{print $2}'` #arrggg use read!
+        kubectl get $ctx $res -n $namespace -o yaml ;;
     pods|services|deployments|replicasets|statefulsets|configmaps|secrets|sa|roles|rolebindings|pv|nodes)
         kubectl get $context $r -n $namespace -o yaml ;;
     *)

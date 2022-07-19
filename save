@@ -1,0 +1,15 @@
+#!/bin/sh
+
+args=$*
+
+if [ "X$args" = X ]
+then
+  echo "ignored blank arguments."
+  exit 1
+fi
+
+savefile=~/.savedcommands
+
+echo '****' >> $savefile
+date >> $savefile
+echo "$args" >> $savefile

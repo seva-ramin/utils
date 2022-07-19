@@ -1,0 +1,27 @@
+#!/bin/sh
+
+tipdir=$HOME/.tips
+
+
+case $1 in
+    -a) [ X$2 = X ] && echo "usage: $0 -a tip_name" && exit 1
+        [ ! -e $tipdir ] && mkdir ~/.tips
+        [ -e $tipdir/$2 ] && echo "$2 already exists." && exit 1
+        vi $tipdir/$2
+        ;;
+    -e) [ X$2 = X ] && echo "usage: $0 -e tip_name" && exit 1
+        [ ! -e $tipdir ] && mkdir ~/.tips
+        vi $tipdir/$2
+        ;;
+    '') echo "usage: $0 tip_name        -  display tip content"
+        echo "       $0 -a tip_name     -  add new tip"
+        echo "       $0 -e tip_name     -  edit existing tip"
+        echo ""
+        echo "tips available for:"
+        ls -1 $tipdir
+        exit 1
+        ;;
+    *)  [ ! -e $tipdir/$1 ] && echo "no tips for $1" && exit 1
+        cat $tipdir/$1
+        ;;
+esac

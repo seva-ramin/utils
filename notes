@@ -1,0 +1,38 @@
+#!/bin/sh
+
+notedir=$HOME/.notes
+
+
+case $1 in
+    -a) [ X$2 = X ] && echo "usage: $0 -a note_name" && exit 1
+        [ ! -e $notedir ] && mkdir ~/.notes
+        [ -e $notedir/$2 ] && echo "$2 already exists." && exit 1
+        echo '-----' >> $notedir/$2
+        date >> $notedir/$2
+        echo '-----' >> $notedir/$2
+        vi $notedir/$2
+        ;;
+    -e) [ X$2 = X ] && echo "usage: $0 -e note_name" && exit 1
+        [ ! -e $notedir ] && mkdir ~/.notes
+        echo '-----' >> $notedir/$2
+        date >> $notedir/$2
+        echo '-----' >> $notedir/$2
+        vi $notedir/$2
+        ;;
+    '') echo "usage: $0 note_name        -  display note content"
+        echo "       $0 -a note_name     -  add new note"
+        echo "       $0 -e note_name     -  edit existing note"
+        echo ""
+        echo "notes available:"
+        if [ -e $notedir/$1 ]
+        then
+           ls -1 $notedir
+        else
+           echo NONE
+        fi
+        exit 1
+        ;;
+    *)  [ ! -e $notedir/$1 ] && echo "no notes for $1" && exit 1
+        cat $notedir/$1
+        ;;
+esac

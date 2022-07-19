@@ -1,0 +1,13 @@
+#!/bin/sh
+
+cmd=$1
+
+if [ X$cmd = X ]
+then
+  echo "usage: $0 query"
+  exit 1
+fi
+
+savefile=~/.savedcommands
+
+grep -i "$cmd" $savefile

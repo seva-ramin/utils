@@ -1,0 +1,18 @@
+#!/bin/sh
+
+filename=$1
+c_dir=~/.encrypted
+
+if [ X$filename = X ]
+then
+  echo "usage: $0 filename"
+  echo "Available files: "
+  ls $c_dir
+  exit 1
+fi
+
+target=`basename $filename`
+
+[ ! -e $c_dir ] && mkdir $c_dir
+
+openssl enc -aes-256-cbc -d -in $c_dir/$filename

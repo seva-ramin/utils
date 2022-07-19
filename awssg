@@ -1,0 +1,101 @@
+#!/bin/sh
+
+# make sure we have jq installed.
+echo '{}' | jq . > /dev/null 2>&1 
+if [ $? -ne 0 ]
+then
+  echo "jq not installed or not working! Please install from https://stedolan.github.io/jq/"
+  exit 1
+fi
+
+usage() {
+  echo "usage: $0 <args>"
+  echo ""
+  echo "supported args:"
+  echo "       all                              - display all information for all SGs"
+  echo "       show <sg>                        - display information for the given SG"
+  echo "       add <sg> <port> <source>         - add new rule to security group"
+  echo "       revoke <sg> <port> <source>      - revoke rule from security group"
+}
+
+if [ X$1 = X ]
+then
+  usage
+  exit 1
+fi
+
+case $1 in
+  all)
+    aws ec2 describe-security-groups | \
+    jq '.SecurityGroups[] | { GroupName, GroupId, Description,
+        permissions: [(.IpPermissions[] | {Port: .FromPort, source: [(.IpRanges[] | .CidrIp)], sg: [(.UserIdGroupPairs[] | .GroupId)]})]
+    }'
+    ;;
+  list)
+    aws ec2 describe-security-groups | \
+    jq '.SecurityGroups[] | { GroupName, GroupId }'
+    ;;
+  show)
+    gid=$2
+    if [ X$gid = X ]
+    then
+      echo "group ID missing. Use '$0 list' to get gid."
+      exit 1
+    fi
+    aws ec2 describe-security-groups --group-ids $gid| \
+    jq '.SecurityGroups[] | { GroupName, GroupId, Description,
+        permissions: [(.IpPermissions[] | {Port: .FromPort, source: [(.IpRanges[] | .CidrIp)], sg: [(.UserIdGroupPairs[] | .GroupId)]})]
+    }'
+    ;;
+  add)
+    gid=$2
+    if [ X$gid = X ]
+    then
+      echo "group ID missing. Use '$0 list' to get gid."
+      exit 1
+    fi
+    port=$3
+    if [ X$port = X ]
+    then
+      echo "port is missing."
+      usage
+      exit 1
+    fi
+    cidr=$4
+    if [ X$cidr = X ]
+    then
+      echo "cidr is missing."
+      usage
+      exit 1
+    fi
+    echo  aws ec2 authorize-security-group-ingress --group-id $gid --protocol tcp --port $port --cidr $cidr
+    aws ec2 authorize-security-group-ingress --group-id $gid --protocol tcp --port $port --cidr $cidr
+    ;;
+  revoke)
+    gid=$2
+    if [ X$gid = X ]
+    then
+      echo "group ID missing. Use '$0 list' to get gid."
+      exit 1
+    fi
+    port=$3
+    if [ X$port = X ]
+    then
+      echo "port is missing."
+      usage
+      exit 1
+    fi
+    cidr=$4
+    if [ X$cidr = X ]
+    then
+      echo "cidr is missing."
+      usage
+      exit 1
+    fi
+    echo  aws ec2 revoke-security-group-ingress --group-id $gid --protocol tcp --port $port --cidr $cidr
+    aws ec2 revoke-security-group-ingress --group-id $gid --protocol tcp --port $port --cidr $cidr
+    ;;
+esac
+
+
+

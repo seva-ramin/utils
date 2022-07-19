@@ -1,0 +1,39 @@
+#!/bin/bash
+
+
+b=gsa-acr-dev-bucket
+
+cmd=$1
+
+case $cmd in
+    ls) path=$2
+        echo aws s3 ls $b/$path
+        aws s3 ls $b/$path
+        exit
+        ;;
+    put) src=$2
+         dest=$3
+         echo aws s3 cp $src s3://$b/$dest
+         aws s3 cp $src s3://$b/$dest
+         exit
+         ;;
+    get) src=$2
+         dest=$3
+         extra=$4
+         echo aws s3 cp s3://$b/$src $dest $extra
+         aws s3 cp s3://$b/$src $dest $extra
+         exit
+         ;;
+    sync) src=$2
+          dest=$3
+          echo aws s3 sync $src s3://$b/$dest
+          aws s3 sync $src s3://$b/$dest
+          ;;
+    rm) dest=$2
+        extra=$3
+        echo aws s3 rm s3://$b/$dest $extra
+        aws s3 rm s3://$b/$dest $extra
+        ;;
+    *) echo "usage: $0 [ ls | put | get | rm ] <src> <dest> [--recursive]"
+        ;;
+esac

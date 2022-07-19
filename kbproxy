@@ -1,0 +1,33 @@
+#!/bin/sh
+
+pod=$1
+ports=$2
+
+
+usage() {
+  echo "usage: $0 pod-name ports"
+  echo ""
+  echo "example: $0 health 10000:8080"
+}
+
+if [ X$pod = X ]
+then
+  usage
+  exit 1
+fi
+
+if [ X$ports = X ]
+then
+  usage
+  exit 1
+fi
+
+kubectl get pod $pod  >/dev/null 2>&1 
+if [ $? -eq 1 ]
+then
+  pod=`kubectl get pod | grep $pod | grep Running | awk '{print $1}'`
+fi
+echo kubectl port-forward $pod $ports
+
+kubectl port-forward $pod $ports
+

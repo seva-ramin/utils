@@ -1,0 +1,24 @@
+#!/bin/sh
+
+pod=$1
+namespace=$2
+
+
+if [ X$pod = X ]
+then
+  echo "usage: $0 pod-name namespace"
+  exit 1
+fi
+
+if [ X$namespace = X ]
+then
+  namespace=default
+fi
+
+kubectl get pod $pod --namespace $namespace >/dev/null 2>&1 
+if [ $? -eq 1 ]
+then
+  pod=`kubectl get pod --namespace $namespace | grep $pod | grep Running | awk '{print $1}'`
+fi
+echo kubectl logs $pod --namespace $namespace -f
+kubectl logs $pod --namespace $namespace -f
